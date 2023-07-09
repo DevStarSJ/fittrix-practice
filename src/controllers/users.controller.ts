@@ -2,6 +2,7 @@ import { Controller, Get, Post, UseGuards, Request, Body } from '@nestjs/common'
 import { AuthService } from 'src/auth/auth.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { LocalAuthGuard } from 'src/auth/local-auth.guard';
+import { SignInInput } from 'src/types/sign-in.input';
 import { SignUpInput } from 'src/types/sign-up.input';
 
 @Controller('users')
@@ -10,10 +11,19 @@ export class UsersController {
     private readonly authService: AuthService
   ) {}
 
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LocalAuthGuard)
   @Post('signIn')
-  async login(@Request() req) {
-    return this.authService.signIn(req.user);
+  async signIn(@Body() body: SignInInput) {
+    const token = await this.authService.signIn(body);
+    return this.signInOrUpResponse(token);
+  }
+
+  @Post('signUp')
+  async signUp(@Body() body: SignUpInput) {
+    const user = await this.authService.signUp(body);
+    const token = this.authService.getToken(user);
+    return this.signInOrUpResponse(token);
+
   }
 
   @UseGuards(JwtAuthGuard)
@@ -22,9 +32,12 @@ export class UsersController {
     return req.user;
   }
 
-  @Post('signUp')
-  async signUp(@Body() body: SignUpInput) {
-    console.log(body);
-    return this.authService.signUp(body);
+
+
+  private signInOrUpResponse(token) {
+    return {
+      success: true,
+      authToken: token
+    }
   }
 }
